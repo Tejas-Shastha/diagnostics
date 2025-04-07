@@ -4,20 +4,22 @@
 //  for industrial property rights.
 
 #include <unistd.h>
-#include <regex>
-#include <set>
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <limits>
-#include <memory>
+
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>   // NOLINT: upstream
 #include <diagnostic_updater/diagnostic_updater.hpp>  // NOLINT: upstream
 #include <diagnostic_updater/publisher.hpp>           // NOLINT: upstream
-#include <rclcpp_lifecycle/lifecycle_node.hpp>        // NOLINT: upstream
-#include <rclcpp_lifecycle/lifecycle_publisher.hpp>   // NOLINT: upstream
+#include <diagnostic_updater/update_functions.hpp>    // NOLINT: upstream
+#include <limits>
+#include <memory>
+#include <rclcpp_lifecycle/lifecycle_node.hpp>       // NOLINT: upstream
+#include <rclcpp_lifecycle/lifecycle_publisher.hpp>  // NOLINT: upstream
+#include <regex>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
 #include "rclcpp/serialization.hpp"
-#include "update_functions.hpp"
 
 using namespace std::chrono_literals;
 
@@ -104,7 +106,8 @@ private:
   std::unordered_map<std::string, std::shared_ptr<rclcpp::GenericSubscription>> subscribed_topics_;
   std::set<std::string> known_topics_;
   std::unordered_map<std::string,
-    std::shared_ptr<topic_monitor::TimeStampStatus>> topic_diag_map_;
+                     std::shared_ptr<diagnostic_updater::TimeStampStatus>>
+      topic_diag_map_;
   std::vector<std::string> topics_;
   std::vector<double> min_delays;
   std::vector<double> max_delays;
@@ -150,9 +153,10 @@ HeaderTopicMonitor::on_activate(const rclcpp_lifecycle::State &)
   gethostname(HOSTNAME, 1000);
   updater_->setHardwareID(std::string(HOSTNAME));
   for (size_t i = 0; i < topics_.size(); ++i) {
-    topic_monitor::TimeStampStatusParam param(min_delays[i], max_delays[i]);
-    auto diag = std::make_shared<topic_monitor::TimeStampStatus>(
-      param, get_prefixed_name(topics_[i]), get_clock());
+    diagnostic_updater::TimeStampStatusParam param(min_delays[i],
+                                                   max_delays[i]);
+    auto diag = std::make_shared<diagnostic_updater::TimeStampStatus>(
+        param, get_prefixed_name(topics_[i]), get_clock());
     topic_diag_map_[topics_[i]] = diag;
     updater_->add(*diag);
   }
