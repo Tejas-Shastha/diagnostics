@@ -68,6 +68,49 @@ install(TARGETS header_topic_monitor_component
   RUNTIME DESTINATION bin
 )
 
+add_library(topic_frequency_monitor_component SHARED src/topic_frequency_monitor_component.cpp)
+rclcpp_components_register_node(topic_frequency_monitor_component
+  PLUGIN "diagnostic_topic_monitor::TopicFrequencyMonitor"
+  EXECUTABLE topic_frequency_monitor
+)
+target_include_directories(topic_frequency_monitor_component PRIVATE include)
+ament_target_dependencies(topic_frequency_monitor_component
+  "lifecycle_msgs"
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "rclcpp_components"
+  "diagnostic_msgs"
+  "diagnostic_updater"
+)
+ament_export_targets(export_topic_frequency_monitor_component)
+install(TARGETS topic_frequency_monitor_component
+  EXPORT export_topic_frequency_monitor_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+add_library(topic_age_monitor_component SHARED src/topic_age_monitor_component.cpp)
+rclcpp_components_register_node(topic_age_monitor_component
+  PLUGIN "diagnostic_topic_monitor::TopicAgeMonitor"
+  EXECUTABLE topic_age_monitor
+)
+target_include_directories(topic_age_monitor_component PRIVATE include)
+ament_target_dependencies(topic_age_monitor_component
+  "lifecycle_msgs"
+  "rclcpp"
+  "rclcpp_lifecycle"
+  "rclcpp_components"
+  "diagnostic_msgs"
+  "diagnostic_updater"
+)
+ament_export_targets(export_topic_age_monitor_component)
+install(TARGETS topic_age_monitor_component
+  EXPORT export_topic_age_monitor_component
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
 
 # Install launch files.
 install(
