@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <diagnostic_msgs/msg/diagnostic_array.hpp>   // NOLINT: upstream
+#include <diagnostic_topic_monitor/activity_diagnostic_task.hpp>
 #include <diagnostic_updater/diagnostic_updater.hpp>  // NOLINT: upstream
 #include <diagnostic_updater/publisher.hpp>           // NOLINT: upstream
 #include <diagnostic_updater/update_functions.hpp>    // NOLINT: upstream
@@ -21,48 +22,6 @@
 
 using namespace std::chrono_literals;
 
-namespace
-{
-// very simply DiagnosticTask that just checks whether there has been _any_
-// kind of activity during the last period
-class ActivityDiagnosticTask : public diagnostic_updater::DiagnosticTask
-{
-public:
-  ActivityDiagnosticTask(const std::string & name, rclcpp::Clock::SharedPtr clock)
-  : diagnostic_updater::DiagnosticTask(name), clock_(clock), last_tick_(0)
-  {
-  }
-  virtual void tick()
-  {
-    last_tick_ = clock_->now();
-  }
-  void run(diagnostic_updater::DiagnosticStatusWrapper & stat) override
-  {
-    stat.name = getName();
-    if (last_tick_.seconds() == 0) {
-      stat.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-      stat.message = "No data received, yet";
-      stat.addf("period", "%f", std::numeric_limits<double>::max());
-    } else {
-      const auto currentTime = clock_->now();
-      // more than 1s without tick is considered warning
-      const auto elapsed = currentTime - last_tick_;
-      stat.addf("period", "%f", elapsed.seconds());
-      if (elapsed <= rclcpp::Duration(1.1s)) {
-        stat.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
-        stat.message = "OK";
-      } else {
-        stat.level = diagnostic_msgs::msg::DiagnosticStatus::WARN;
-        stat.message = "Last data received more than 1s ago";
-      }
-    }
-  }
-
-private:
-  rclcpp::Clock::SharedPtr clock_;
-  rclcpp::Time last_tick_;
-};
-}  // namespace
 
 namespace diagnostic_topic_monitor
 {
