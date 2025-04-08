@@ -32,7 +32,7 @@ typedef rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackRetur
 /**
  * @brief Base abstract class for creating Topic Monitors.
  */
-template <typename T>
+template <typename StatusType, typename StatusParamType>
 class GenericTopicMonitor : public rclcpp_lifecycle::LifecycleNode
 {
 public:
@@ -52,7 +52,8 @@ protected:
   bool skip_topic(const std::string & topic_name);
   virtual void topic_cb(
     const std::string & topic_name, const std::shared_ptr<rclcpp::SerializedMessage> & msg) = 0;
-  void update_topic_subscriptions();
+  virtual void update_topic_subscriptions();
+  virtual StatusParamType parse_params(const int index) = 0;
 
   std::vector<std::regex> hidden_topics_{
     std::regex("^/rosout$"), std::regex(".*/parameter_events"), std::regex("^/diagnostics$"),
@@ -60,8 +61,7 @@ protected:
   std::shared_ptr<rclcpp::TimerBase> timer_;
   std::shared_ptr<diagnostic_updater::Updater> updater_;
   std::unordered_map<std::string, std::shared_ptr<rclcpp::GenericSubscription>> subscribed_topics_;
-  std::unordered_map<std::string, std::shared_ptr<ActivityDiagnosticTask>> fallback_topic_diag_map_;
-  std::unordered_map<std::string, std::shared_ptr<T>> topic_diag_map_;
+  std::unordered_map<std::string, std::shared_ptr<StatusType>> topic_diag_map_;
   std::vector<std::string> topics_;
   std::set<std::string> known_topics_;
   std::vector<double> min_values_;
@@ -71,8 +71,8 @@ protected:
 };
 
 // Implementation of GenericTopicMonitor methods
-template <typename T>
-inline GenericTopicMonitor<T>::GenericTopicMonitor(
+template <typename StatusType, typename StatusParamType>
+inline GenericTopicMonitor<StatusType, StatusParamType>::GenericTopicMonitor(
   const std::string & node_name, rclcpp::NodeOptions options)
 : rclcpp_lifecycle::LifecycleNode(node_name, options.allow_undeclared_parameters(true))
 {
@@ -94,8 +94,9 @@ inline GenericTopicMonitor<T>::GenericTopicMonitor(
   declare_parameter(DIAG_PREFIX_PARAM_NAME, "");
 }
 
-template <typename T>
-inline std::string diagnostic_topic_monitor::GenericTopicMonitor<T>::get_prefixed_name(
+template <typename StatusType, typename StatusParamType>
+inline std::string
+diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::get_prefixed_name(
   const std::string & topic_name) const
 {
   if (topic_name.find(diag_prefix_) == 0) {
@@ -104,8 +105,8 @@ inline std::string diagnostic_topic_monitor::GenericTopicMonitor<T>::get_prefixe
   return diag_prefix_ + std::string("/") + topic_name;
 }
 
-template <typename T>
-inline bool diagnostic_topic_monitor::GenericTopicMonitor<T>::skip_topic(
+template <typename StatusType, typename StatusParamType>
+inline bool diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::skip_topic(
   const std::string & topic_name)
 {
   // skip if we already subscribed
@@ -133,8 +134,9 @@ inline bool diagnostic_topic_monitor::GenericTopicMonitor<T>::skip_topic(
   return monitor_configured_only_;
 }
 
-template <typename T>
-inline void diagnostic_topic_monitor::GenericTopicMonitor<T>::update_topic_subscriptions()
+template <typename StatusType, typename StatusParamType>
+inline void diagnostic_topic_monitor::GenericTopicMonitor<
+  StatusType, StatusParamType>::update_topic_subscriptions()
 {
   RCLCPP_DEBUG(
     get_logger(), "Examining topic list for changes, currently monitoring %ld topics",
@@ -153,36 +155,61 @@ inline void diagnostic_topic_monitor::GenericTopicMonitor<T>::update_topic_subsc
         this->topic_cb(topic_name, msg);
       });
     subscribed_topics_[topic_name] = sub;
-    // add a default diagnostic if none is configured
-    if (topic_diag_map_.find(topic_name) == topic_diag_map_.end()) {
-      auto fallback_diag =
-        std::make_shared<ActivityDiagnosticTask>(get_prefixed_name(topic_name), get_clock());
-      fallback_topic_diag_map_[topic_name] = fallback_diag;
-      updater_->add(*fallback_diag);
-    }
   }
 }
 
-template <typename T>
-inline LCCBReturn diagnostic_topic_monitor::GenericTopicMonitor<T>::on_configure(
-  const rclcpp_lifecycle::State & state)
+template <typename StatusType, typename StatusParamType>
+inline LCCBReturn
+diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_configure(
+  const rclcpp_lifecycle::State &)
 {
-  (void)state;
-  RCLCPP_INFO_STREAM(get_logger(), "Configuring GenericTopicMonitor");
+  RCLCPP_DEBUG(get_logger(), "Configuring");
+  // configure the diagnostics
+  topics_ = get_parameter(TOPICS_PARAM_NAME).as_string_array();
+  min_values_ = get_parameter(MIN_VALUES_PARAM_NAME).as_double_array();
+  max_values_ = get_parameter(MAX_VALUES_PARAM_NAME).as_double_array();
+  if (topics_.size() != min_values_.size() || topics_.size() != max_values_.size()) {
+    throw std::invalid_argument("Topics and min/max_values must have same number of arguments");
+  }
+  monitor_configured_only_ = get_parameter(MONITOR_CONFIGURED_ONLY_PARAM_NAME).as_bool();
+  diag_prefix_ = get_parameter(DIAG_PREFIX_PARAM_NAME).as_string();
+
+  RCLCPP_DEBUG(
+    get_logger(), "Done configuring for %ld topics, config only: %d", topic_diag_map_.size(),
+    monitor_configured_only_);
   return LCCBReturn::SUCCESS;
 }
 
-template <typename T>
-inline LCCBReturn diagnostic_topic_monitor::GenericTopicMonitor<T>::on_activate(
-  const rclcpp_lifecycle::State & state)
+template <typename StatusType, typename StatusParamType>
+inline LCCBReturn
+diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_activate(
+  const rclcpp_lifecycle::State &)
 {
-  (void)state;
-  RCLCPP_INFO_STREAM(get_logger(), "Activating GenericTopicMonitor");
+  RCLCPP_DEBUG(get_logger(), "Activating");
+  updater_ = std::make_shared<diagnostic_updater::Updater>(this);
+  char HOSTNAME[1000];
+  gethostname(HOSTNAME, 1000);
+  updater_->setHardwareID(std::string(HOSTNAME));
+  for (size_t i = 0; i < topics_.size(); ++i) {
+    auto param = parse_params(i);
+    auto diag = std::make_shared<StatusType>(param, get_prefixed_name(topics_[i]), get_clock());
+    topic_diag_map_[topics_[i]] = diag;
+    updater_->add(*diag);
+  }
+  // check existing topics
+  try {
+    update_topic_subscriptions();
+  } catch (const std::exception & ex) {
+    RCLCPP_ERROR(this->get_logger(), "Failure to update subscriptions: %s", ex.what());
+    return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
+  }
+  timer_ = create_wall_timer(1s, [this]() { this->update_topic_subscriptions(); });
   return LCCBReturn::SUCCESS;
 }
 
-template <typename T>
-inline LCCBReturn diagnostic_topic_monitor::GenericTopicMonitor<T>::on_deactivate(
+template <typename StatusType, typename StatusParamType>
+inline LCCBReturn
+diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_deactivate(
   const rclcpp_lifecycle::State & state)
 {
   (void)state;

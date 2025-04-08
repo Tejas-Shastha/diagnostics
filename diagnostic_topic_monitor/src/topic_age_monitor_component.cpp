@@ -7,13 +7,17 @@ TopicAgeMonitor::TopicAgeMonitor(
   const std::string & node_name, rclcpp::NodeOptions options)
 : GenericTopicMonitor(node_name, options)
 {
-  RCLCPP_INFO_STREAM(get_logger(), "TopicAgeMonitor constructor called");
 }
 
 TopicAgeMonitor::TopicAgeMonitor(rclcpp::NodeOptions options)
-: GenericTopicMonitor("topic_frequency_monitor", options)
+: GenericTopicMonitor("topic_age_monitor", options)
 {
-  RCLCPP_INFO_STREAM(get_logger(), "TopicAgeMonitor constructor called");
+}
+
+diagnostic_updater::TimeStampStatusParam diagnostic_topic_monitor::TopicAgeMonitor::parse_params(
+  const int index)
+{
+  return diagnostic_updater::TimeStampStatusParam(min_values_[index], max_values_[index]);
 }
 
 void TopicAgeMonitor::topic_cb(

@@ -5,7 +5,9 @@
 
 namespace diagnostic_topic_monitor {
 
-class TopicAgeMonitor final : public GenericTopicMonitor<diagnostic_updater::TimeStampStatus>
+class TopicAgeMonitor final
+: public GenericTopicMonitor<
+    diagnostic_updater::TimeStampStatus, diagnostic_updater::TimeStampStatusParam>
 {
 public:
     TopicAgeMonitor(const std::string & node_name, rclcpp::NodeOptions options);
@@ -14,9 +16,10 @@ public:
 
     void topic_cb(
         const std::string & topic_name, const std::shared_ptr<rclcpp::SerializedMessage> & msg) override;
+    diagnostic_updater::TimeStampStatusParam parse_params(const int index) override;
 
-private:
-rclcpp::Serialization<std_msgs::msg::Header> _header_serializer;
+  private:
+    rclcpp::Serialization<std_msgs::msg::Header> _header_serializer;
 
 };
 
