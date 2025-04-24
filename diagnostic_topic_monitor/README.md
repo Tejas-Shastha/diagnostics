@@ -53,11 +53,11 @@ Without any parameters, this node (component also available) will subscribe to a
 
 Usually, we want to make sure that the frequency of a topic is within certain bounds.
 
-For example, to monitor that the frequency of the "talker" topic is about 25Hz and the frequency of the "cmd_vel" topic is about 10Hz, use the following three parameters and pass them lists in the same order. This means, the second element in "min_freqs" applies to the topic given by the second element of the "topics" parameter.
+For example, to monitor that the frequency of the "talker" topic is about 25Hz and the frequency of the "cmd_vel" topic is about 10Hz, use the following three parameters and pass them lists in the same order. This means, the second element in "min_values" applies to the topic given by the second element of the "topics" parameter.
 
     topics: [ "talker", "cmd_vel" ]
-    min_freqs: [ 23.0, 8.0 ]
-    max_freqs: [ 26.5, 11.0 ]
+    min_values: [ 23.0, 8.0 ]
+    max_values: [ 26.5, 11.0 ]
 
 Please note that the frequencies will be computed purely based on _arrival_ timing, the header is currently ignored.
 
@@ -70,7 +70,7 @@ Without any parameters, this node (component also available) will subscribe to a
 Usually, we want to make sure that message is not much older than expected (allowing for some jitter due to network transmission),
 but also not newer than expected (which would indicate issues with timestamp or system time between machines).
 
-Since this relies on a sender-side timestamp, this monitor only works with message that include a Header. 
+Since this relies on a sender-side timestamp, this monitor only works with message that include a Header.
 
 NOTE: You can configure it for any topic and it _will_ interpret the data in there as a timestamp, but unless it
 really is a header, the results will be rather random ;-)
@@ -78,5 +78,14 @@ really is a header, the results will be rather random ;-)
 Configuration is similar to the frequency monitor, but giving a range for delays instead:
 
     topics: [ "talker", "cmd_vel" ]
-    min_delays: [ 80, 8.0 ]
-    max_delays: [ 120, 11.0 ]
+    min_values: [ 80, 8.0 ]
+    max_values: [ 120, 11.0 ]
+
+
+## Testing
+
+To run all tests in this package:
+
+```bash
+colcon test --event-handlers console_direct+ --packages-select diagnostic_topic_monitor
+```

@@ -213,14 +213,8 @@ class TestMonitor(unittest.TestCase):
         last_status = last_msg.status[0]
         # status should be OK
         self.assertEqual(last_status.level, DiagnosticStatus.OK)
-        # period estimate should be 4 Hz
         keys = [value.key for value in last_status.values]
         self.assertTrue("period" in keys)
-        # disabled until we can get deterministic measurement on CI
-        # self.assertAlmostEqual(
-        #    float(last_status.values[keys.index("period")].value), 0.25, delta=0.02)
-        # check that the two topics of this test are present
-        # (a bit more complex, since on CI other topics may be running in parallel)
         names = [status.name for status in last_msg.status]
         self.assertIn(f"{ALL_MONITOR_NAME}: /topic", names, f"{names}")
         self.assertIn(f"{ALL_MONITOR_NAME}: /ignore_topic", names, f"{names}")
@@ -235,9 +229,6 @@ class TestMonitor(unittest.TestCase):
         self.assertTrue(FREQ_MONITOR_NAME in status.name)
         keys = [kv.key for kv in status.values]
         self.assertIn("Actual frequency (Hz)", keys)
-        # disabled until we can get deterministic measurement on CI
-        # freq = [kv.value for kv in status.values if kv.key == "Actual frequency (Hz)"][0]
-        # self.assertAlmostEqual(float(freq), 2.0, delta=0.02)
 
     def test_ignore_unconfigured(self):
         """Check that we ignore the topic we don't monitor."""
