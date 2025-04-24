@@ -40,10 +40,13 @@ import launch_testing.asserts
 from lifecycle_msgs.msg import Transition
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus
 
+from launch.substitutions import PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
+
 import rclpy
 from rclpy.time import Time, Duration
 
-
+# Helper functions to activate the lifecycle monitor nodes
 def create_change_state(target, target_state):
     return EmitEvent(
         event=ChangeState(
@@ -83,13 +86,22 @@ def create_register_activate(target_action):
     )
 
 
-ALL_MONITOR_NAME = "all_monitor"
-FREQ_MONITOR_NAME = "frequency_monitor"
+ALL_MONITOR_NAME = "monitor_all_topics_node"
+CONFIG_MONITOR_NAME = "monitor_configured_topics_node"
 
 
 @pytest.mark.launch_test
 def generate_test_description():
-    monitor_node = LifecycleNode(
+    # Node that publishes the topics we want to monitor
+    talker_node = Node(
+        package="diagnostic_topic_monitor",
+        executable="dummy_publishers.py",
+        output="log",
+        name="talker",
+        arguments=["--ros-args", "--log-level", "talker:=warn"],
+    )
+    # Un-configured frequency monitor that checks all topics
+    monitor_all_node = LifecycleNode(
         package="diagnostic_topic_monitor",
         executable="topic_frequency_monitor",
         name=ALL_MONITOR_NAME,
@@ -97,56 +109,42 @@ def generate_test_description():
         namespace="",
         arguments=["--ros-args", "--log-level", "all_monitor:=INFO"],
     )
-    frequency_monitor_node = LifecycleNode(
+    # Frequency monitor with configuration file
+    monitor_config_node = LifecycleNode(
         package="diagnostic_topic_monitor",
         executable="topic_frequency_monitor",
-        name=FREQ_MONITOR_NAME,
+        name=CONFIG_MONITOR_NAME,
         output="both",
         namespace="",
         parameters=[
-            {
-                "topics": ["/topic"],
-                "min_values": [1.8],
-                "max_values": [2.1],
-                "diag_prefix": "freq",
-                "monitor_configured_only": True,
-                "diagnostic_updater.use_fqn": True,
-            }
+            PathJoinSubstitution(
+                [
+                    FindPackageShare("diagnostic_topic_monitor"),
+                    "test",
+                    "config",
+                    "topic_frequency_monitor.yaml",
+                ]
+            ),
         ],
         arguments=["--ros-args", "--log-level", "frequency_monitor:=INFO"],
     )
-    talker_node = Node(
-        package="examples_rclcpp_minimal_publisher",
-        executable="publisher_lambda",
-        output="log",
-        name="talker",
-        arguments=['--ros-args', '--log-level', 'talker:=warn']
-    )
-    talker2_node = Node(
-        package="examples_rclcpp_minimal_publisher",
-        executable="publisher_lambda",
-        name="talker2",
-        output="log",
-        remappings=[("topic", "ignore_topic")],
-        arguments=['--ros-args', '--log-level', 'talker2:=warn']
-    )
+
     return launch.LaunchDescription(
         [
-            SetEnvironmentVariable('RCUTILS_LOGGING_BUFFERED_STREAM', '1'),
+            SetEnvironmentVariable("RCUTILS_LOGGING_BUFFERED_STREAM", "1"),
             talker_node,
-            talker2_node,
-            monitor_node,
-            frequency_monitor_node,
+            monitor_all_node,
+            monitor_config_node,
             # Right after the monitor starts, make it take the 'configure' transition.
-            create_register_configure(monitor_node),
-            create_register_configure(frequency_monitor_node),
+            create_register_configure(monitor_all_node),
+            create_register_configure(monitor_config_node),
             # When the monitor reaches the 'inactive' state, 'activate'.
-            create_register_activate(monitor_node),
-            create_register_activate(frequency_monitor_node),
+            create_register_activate(monitor_all_node),
+            create_register_activate(monitor_config_node),
             # When the monitor node reaches the 'active' state, we're ready for testing
             RegisterEventHandler(
                 launch_ros.event_handlers.OnStateTransition(
-                    target_lifecycle_node=monitor_node,
+                    target_lifecycle_node=monitor_all_node,
                     start_state="activating",
                     goal_state="active",
                     entities=[
@@ -159,7 +157,6 @@ def generate_test_description():
     )
 
 
-@pytest.mark.skip(reason="Brittle on CI as long as we don't have proper resource constraints")
 class TestMonitor(unittest.TestCase):
     TIMEOUT = 30
 
@@ -172,7 +169,7 @@ class TestMonitor(unittest.TestCase):
         rclpy.shutdown()
 
     def setUp(self):
-        self.node = rclpy.create_node("test_topic_monitor_node")
+        self.node = rclpy.create_node("test_topic_frequency_monitor_node")
         self.log = self.node.get_logger()
         self.sub = self.node.create_subscription(
             DiagnosticArray, "/diagnostics", self.stat_cb, 10
@@ -198,7 +195,7 @@ class TestMonitor(unittest.TestCase):
         """Store message for future processing."""
         if len(msg.status) == 0:
             return
-        if FREQ_MONITOR_NAME in msg.status[0].name:
+        if CONFIG_MONITOR_NAME in msg.status[0].name:
             self.freq_messages.append(msg)
         else:
             self.messages.append(msg)
@@ -226,11 +223,11 @@ class TestMonitor(unittest.TestCase):
         self.assertTrue(len(last_msg.status) > 0)
         status = last_msg.status[0]
         # check some fields for present/content
-        self.assertTrue(FREQ_MONITOR_NAME in status.name)
+        self.assertTrue(CONFIG_MONITOR_NAME in status.name)
         keys = [kv.key for kv in status.values]
         self.assertIn("Actual frequency (Hz)", keys)
 
     def test_ignore_unconfigured(self):
         """Check that we ignore the topic we don't monitor."""
         last_msg = self.freq_messages.pop()
-        self.assertEqual(len(last_msg.status), 1)
+        self.assertEqual(len(last_msg.status), 2)  # We monitor 2 topics

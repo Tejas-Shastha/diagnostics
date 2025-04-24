@@ -14,13 +14,33 @@ Moreover, the header_topic_monitor is largely copy-pasted.
 
 ## Usage
 
-The nodes and components use the ROS 2 life-cycle based, which means they won't just activate when run. See `launch/topic_monitor_launch.py` for an example of how to start the nodes.
+The nodes and components use the ROS 2 life-cycle based, which means they won't just activate when run. See the `test` folder for examples of how to configure and start the nodes.
+
+> TIP: If you don't mind the added dependency, you can use the [nav2_lifecycle_manager](https://docs.nav2.org/configuration/packages/configuring-lifecycle.html) with parameter `autostart` set to `true` and target the monitor nodes to autostart them.
+
+> Example launch snippet:
+```python
+# Include this node in your LaunchConfiguration
+autostart_node = LifecycleNode(
+        package="nav2_lifecycle_manager",
+        executable="lifecycle_manager",
+        name="autostart_monitors",
+        parameters=[
+            {
+              "autostart": True,
+              "node_names": ["topic_frequency_monitor", "topic_age_monitor"]
+            }
+        ],
+    )
+```
+
+> For this, you need to have the `nav2_lifecycle_manager` package available (binary or source code installation), and ideally add it as an `exec_depend` in your package.
 
 ### Nodes
 
 There are two nodes which behave almost the same
-  * topic_monitor_node -- this supports _any_ kind of topic and checks for frequency based on receive time
-  * header_topic_monitor_node -- this supports only topics with a Header, and it checks that message age is within a given range
+  * topic_frequency_monitor -- this supports _any_ kind of topic and checks for frequency based on receive time
+  * topic_age_monitor -- this supports only topics with a Header, and it checks that message age is within a given range
 
 It is totally possible to run both of these at the same time _for the same topics_, to check for both frequency
 and max message age at the same time.
@@ -45,7 +65,7 @@ By default, the following internal topic names will be ignored, as they are usua
 `diag_prefix`
  This string will be prefixed to the name of the diagnostic for use within the aggregator.
 
-### `topic_monitor_node`
+### `topic_frequency_monitor`
 
 Without any parameters, this node (component also available) will subscribe to all normal topics in a system and minimally monitor that there is activity on them (defined as "at least one message per second"). For more specific configuration, the following parameters are available.
 
@@ -61,7 +81,7 @@ For example, to monitor that the frequency of the "talker" topic is about 25Hz a
 
 Please note that the frequencies will be computed purely based on _arrival_ timing, the header is currently ignored.
 
-### `header_topic_monitor_node`
+### `topic_age_monitor`
 
 Without any parameters, this node (component also available) will subscribe to all normal topics in a system and minimally monitor that there is activity on them (defined as "at least one message per second"). For more specific configuration, the following parameters are available.
 

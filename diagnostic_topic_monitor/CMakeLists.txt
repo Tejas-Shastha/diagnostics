@@ -72,11 +72,6 @@ install(
   DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}/
 )
-# Install config files.
-install(
-  DIRECTORY config
-  DESTINATION share/${PROJECT_NAME}/
-)
 
 install(
   DIRECTORY include/
@@ -87,6 +82,16 @@ install(
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(launch_testing_ament_cmake REQUIRED)
+
+  # Install the test configs and dummy publisher for testing
+  install(
+    DIRECTORY test
+    DESTINATION share/${PROJECT_NAME}/
+  )
+  install(
+    PROGRAMS test/dummy_publishers.py
+    DESTINATION lib/${PROJECT_NAME}
+  )
 
   add_launch_test(
     test/test_topic_frequency_monitor.py
