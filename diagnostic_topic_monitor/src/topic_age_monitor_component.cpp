@@ -3,8 +3,7 @@
 namespace diagnostic_topic_monitor
 {
 
-TopicAgeMonitor::TopicAgeMonitor(
-  const std::string & node_name, rclcpp::NodeOptions options)
+TopicAgeMonitor::TopicAgeMonitor(const std::string & node_name, rclcpp::NodeOptions options)
 : GenericTopicMonitor(node_name, options)
 {
 }

@@ -3,10 +3,11 @@
 
 #include "diagnostic_topic_monitor/generic_topic_monitor.hpp"
 
-namespace diagnostic_topic_monitor {
+namespace diagnostic_topic_monitor
+{
 
 class TopicFrequencyMonitor final
-: public GenericTopicMonitor<
+  : public GenericTopicMonitor<
     diagnostic_updater::FrequencyStatus, diagnostic_updater::FrequencyStatusParam>
 {
 public:
@@ -24,7 +25,6 @@ private:
   std::unordered_map<std::string, std::shared_ptr<ActivityDiagnosticTask>> fallback_topic_diag_map_;
 };
 
+}  // namespace diagnostic_topic_monitor
 
-} // namespace diagnostic_topic_monitor
-
-#endif // DIAGNOSTIC_TOPIC_MONITOR_TOPIC_FREQUENCY_MONITOR_HPP
+#endif  // DIAGNOSTIC_TOPIC_MONITOR_TOPIC_FREQUENCY_MONITOR_HPP

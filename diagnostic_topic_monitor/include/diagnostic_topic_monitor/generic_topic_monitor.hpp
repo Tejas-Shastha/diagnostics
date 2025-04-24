@@ -32,16 +32,16 @@ typedef rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackRetur
 /**
  * @brief Base abstract class for creating Topic Monitors.
  */
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 class GenericTopicMonitor : public rclcpp_lifecycle::LifecycleNode
 {
 public:
   explicit GenericTopicMonitor(const std::string & node_name, rclcpp::NodeOptions options);
-  ~GenericTopicMonitor() {};
+  ~GenericTopicMonitor() {}
   LCCBReturn on_configure(const rclcpp_lifecycle::State &) override;
   LCCBReturn on_activate(const rclcpp_lifecycle::State & state) override;
   LCCBReturn on_deactivate(const rclcpp_lifecycle::State & state) override;
-  LCCBReturn on_cleanup(const rclcpp_lifecycle::State &) override { return LCCBReturn::SUCCESS; }
+  LCCBReturn on_cleanup(const rclcpp_lifecycle::State &) override {return LCCBReturn::SUCCESS;}
   virtual CallbackReturn on_shutdown(const rclcpp_lifecycle::State &) override
   {
     return LCCBReturn::SUCCESS;
@@ -71,7 +71,7 @@ protected:
 };
 
 // Implementation of GenericTopicMonitor methods
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline GenericTopicMonitor<StatusType, StatusParamType>::GenericTopicMonitor(
   const std::string & node_name, rclcpp::NodeOptions options)
 : rclcpp_lifecycle::LifecycleNode(node_name, options.allow_undeclared_parameters(true))
@@ -94,7 +94,7 @@ inline GenericTopicMonitor<StatusType, StatusParamType>::GenericTopicMonitor(
   declare_parameter(DIAG_PREFIX_PARAM_NAME, "");
 }
 
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline std::string
 diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::get_prefixed_name(
   const std::string & topic_name) const
@@ -105,7 +105,7 @@ diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::get_
   return diag_prefix_ + std::string("/") + topic_name;
 }
 
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline bool diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::skip_topic(
   const std::string & topic_name)
 {
@@ -134,7 +134,7 @@ inline bool diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusPara
   return monitor_configured_only_;
 }
 
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline void diagnostic_topic_monitor::GenericTopicMonitor<
   StatusType, StatusParamType>::update_topic_subscriptions()
 {
@@ -158,7 +158,7 @@ inline void diagnostic_topic_monitor::GenericTopicMonitor<
   }
 }
 
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline LCCBReturn
 diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_configure(
   const rclcpp_lifecycle::State &)
@@ -180,7 +180,7 @@ diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_c
   return LCCBReturn::SUCCESS;
 }
 
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline LCCBReturn
 diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_activate(
   const rclcpp_lifecycle::State &)
@@ -203,11 +203,11 @@ diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_a
     RCLCPP_ERROR(this->get_logger(), "Failure to update subscriptions: %s", ex.what());
     return rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn::ERROR;
   }
-  timer_ = create_wall_timer(1s, [this]() { this->update_topic_subscriptions(); });
+  timer_ = create_wall_timer(1s, [this]() {this->update_topic_subscriptions();});
   return LCCBReturn::SUCCESS;
 }
 
-template <typename StatusType, typename StatusParamType>
+template<typename StatusType, typename StatusParamType>
 inline LCCBReturn
 diagnostic_topic_monitor::GenericTopicMonitor<StatusType, StatusParamType>::on_deactivate(
   const rclcpp_lifecycle::State & state)
