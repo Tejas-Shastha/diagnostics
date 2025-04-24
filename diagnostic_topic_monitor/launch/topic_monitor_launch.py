@@ -13,7 +13,7 @@ from launch_ros.substitutions import FindPackageShare
 
 DIAG_NAMESPACE = "/diagnostics"
 FREQ_MONITOR_NAME = "topic_frequency_monitor"
-AGE_MONITOR_NAME = "message_age_monitor"
+AGE_MONITOR_NAME = "topic_age_monitor"
 
 
 def generate_launch_description():
@@ -34,8 +34,7 @@ def generate_launch_description():
                     PushRosNamespace(namespace=DIAG_NAMESPACE),
                     Node(
                         package="diagnostic_topic_monitor",
-                        executable="topic_monitor",
-                        # executable="topic_frequency_monitor",
+                        executable="topic_frequency_monitor",
                         name=FREQ_MONITOR_NAME,
                         parameters=[
                             {
@@ -46,7 +45,7 @@ def generate_launch_description():
                                 [
                                     FindPackageShare("diagnostic_topic_monitor"),
                                     "config",
-                                    "topic_check.yaml",
+                                    "topic_frequency_monitor.yaml",
                                 ]
                             ),
                         ],
@@ -59,8 +58,7 @@ def generate_launch_description():
                     ),
                     Node(
                         package="diagnostic_topic_monitor",
-                        executable="header_topic_monitor",
-                        # executable="topic_age_monitor",
+                        executable="topic_age_monitor",
                         name=AGE_MONITOR_NAME,
                         parameters=[
                             {
@@ -71,7 +69,7 @@ def generate_launch_description():
                                 [
                                     FindPackageShare("diagnostic_topic_monitor"),
                                     "config",
-                                    "topic_check.yaml",
+                                    "topic_age_monitor.yaml",
                                 ]
                             ),
                         ],
@@ -94,7 +92,7 @@ def generate_launch_description():
                                 "autostart": True,
                                 "node_names": [
                                     [DIAG_NAMESPACE, "/", FREQ_MONITOR_NAME],
-                                    # [DIAG_NAMESPACE, "/", AGE_MONITOR_NAME],
+                                    [DIAG_NAMESPACE, "/", AGE_MONITOR_NAME],
                                 ],
                                 "bond_timeout": 0.0,
                             },

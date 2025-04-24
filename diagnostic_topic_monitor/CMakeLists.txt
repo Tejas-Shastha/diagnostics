@@ -23,51 +23,6 @@ find_package(rclcpp REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(std_msgs REQUIRED)
 
-add_library(topic_monitor_component SHARED src/topic_monitor_component.cpp)
-rclcpp_components_register_node(topic_monitor_component
-  PLUGIN "rob_topic_monitor::TopicMonitor"
-  EXECUTABLE topic_monitor
-)
-target_include_directories(topic_monitor_component PRIVATE include)
-ament_target_dependencies(topic_monitor_component
-  "lifecycle_msgs"
-  "rclcpp"
-  "rclcpp_lifecycle"
-  "rclcpp_components"
-  "diagnostic_msgs"
-  "diagnostic_updater"
-)
-ament_export_targets(export_topic_monitor_component)
-install(TARGETS topic_monitor_component
-  EXPORT export_topic_monitor_component
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-add_library(header_topic_monitor_component SHARED src/header_topic_monitor_component.cpp)
-rclcpp_components_register_node(header_topic_monitor_component
-  PLUGIN "rob_topic_monitor::HeaderTopicMonitor"
-  EXECUTABLE header_topic_monitor
-)
-target_include_directories(header_topic_monitor_component PRIVATE include)
-ament_target_dependencies(header_topic_monitor_component
-  "lifecycle_msgs"
-  "std_msgs"
-  "rclcpp"
-  "rclcpp_lifecycle"
-  "rclcpp_components"
-  "diagnostic_msgs"
-  "diagnostic_updater"
-)
-ament_export_targets(export_header_topic_monitor_component)
-install(TARGETS header_topic_monitor_component
-  EXPORT export_header_topic_monitor_component
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
 add_library(topic_frequency_monitor_component SHARED src/topic_frequency_monitor_component.cpp)
 rclcpp_components_register_node(topic_frequency_monitor_component
   PLUGIN "diagnostic_topic_monitor::TopicFrequencyMonitor"

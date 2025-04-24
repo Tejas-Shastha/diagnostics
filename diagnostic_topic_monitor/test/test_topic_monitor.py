@@ -90,26 +90,30 @@ FREQ_MONITOR_NAME = "frequency_monitor"
 @pytest.mark.launch_test
 def generate_test_description():
     monitor_node = LifecycleNode(
-        package="rob_topic_monitor",
-        executable="topic_monitor",
+        package="diagnostic_topic_monitor",
+        executable="topic_frequency_monitor",
         name=ALL_MONITOR_NAME,
         output="both",
         namespace="",
-        arguments=['--ros-args', '--log-level', 'all_monitor:=INFO']
+        arguments=["--ros-args", "--log-level", "all_monitor:=INFO"],
     )
     frequency_monitor_node = LifecycleNode(
-        package="rob_topic_monitor",
-        executable="topic_monitor",
+        package="diagnostic_topic_monitor",
+        executable="topic_frequency_monitor",
         name=FREQ_MONITOR_NAME,
         output="both",
         namespace="",
-        parameters=[{"topics": ["/topic"],
-                     'min_freqs': [1.8],
-                     'max_freqs': [2.1],
-                     'diag_prefix': 'freq',
-                     'monitor_configured_only': True,
-                     'diagnostic_updater.use_fqn': True}],
-        arguments=['--ros-args', '--log-level', 'frequency_monitor:=INFO']
+        parameters=[
+            {
+                "topics": ["/topic"],
+                "min_values": [1.8],
+                "max_values": [2.1],
+                "diag_prefix": "freq",
+                "monitor_configured_only": True,
+                "diagnostic_updater.use_fqn": True,
+            }
+        ],
+        arguments=["--ros-args", "--log-level", "frequency_monitor:=INFO"],
     )
     talker_node = Node(
         package="examples_rclcpp_minimal_publisher",
