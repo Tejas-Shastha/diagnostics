@@ -24,7 +24,13 @@ void TopicAgeMonitor::topic_cb(
 {
   std_msgs::msg::Header header;
   const auto diag = topic_diag_map_.find(topic_name);
-  _header_serializer.deserialize_message(msg.get(), &header);
+  try {
+    _header_serializer.deserialize_message(msg.get(), &header);
+  } catch (const std::exception & e) {
+    RCLCPP_WARN(
+      get_logger(), "Failed to deserialize message from topic %s, skipping it", topic_name.c_str());
+    return;
+  }
 
   if (diag != topic_diag_map_.end()) {
     diag->second->tick(header.stamp);

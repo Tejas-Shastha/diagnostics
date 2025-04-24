@@ -78,12 +78,11 @@ install(
   DESTINATION include
 )
 
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   find_package(launch_testing_ament_cmake REQUIRED)
 
-  # Install the test configs and dummy publisher for testing
+  # Install the test configs and dummy publisher used for testing
   install(
     DIRECTORY test
     DESTINATION share/${PROJECT_NAME}/
@@ -96,6 +95,11 @@ if(BUILD_TESTING)
   add_launch_test(
     test/test_topic_frequency_monitor.py
     TARGET test_topic_frequency_monitor
+    TIMEOUT 20)
+
+  add_launch_test(
+    test/test_topic_age_monitor.py
+    TARGET test_topic_age_monitor
     TIMEOUT 20)
 endif()
 

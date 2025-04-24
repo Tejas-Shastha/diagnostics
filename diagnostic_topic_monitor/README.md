@@ -28,7 +28,8 @@ autostart_node = LifecycleNode(
         parameters=[
             {
               "autostart": True,
-              "node_names": ["topic_frequency_monitor", "topic_age_monitor"]
+              "node_names": ["topic_frequency_monitor", "topic_age_monitor"],
+              "bond_timeout": 0.0,
             }
         ],
     )
@@ -100,7 +101,10 @@ Configuration is similar to the frequency monitor, but giving a range for delays
     topics: [ "talker", "cmd_vel" ]
     min_values: [ 80, 8.0 ]
     max_values: [ 120, 11.0 ]
+    monitor_configured_only: True
 
+> It is highly prudent to only monitor configured topics in the age monitor. If you set it to monitor all,
+and you have topics without header fields, you will get a lot of warning messages!!
 
 ## Testing
 

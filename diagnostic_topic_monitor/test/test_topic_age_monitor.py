@@ -100,19 +100,10 @@ def generate_test_description():
         name="talker",
         arguments=["--ros-args", "--log-level", "talker:=warn"],
     )
-    # Un-configured frequency monitor that checks all topics
-    monitor_all_node = LifecycleNode(
-        package="diagnostic_topic_monitor",
-        executable="topic_frequency_monitor",
-        name=ALL_MONITOR_NAME,
-        output="both",
-        namespace="",
-        arguments=["--ros-args", "--log-level", "all_monitor:=INFO"],
-    )
-    # Frequency monitor with configuration file
+    # Monitor with configuration file
     monitor_config_node = LifecycleNode(
         package="diagnostic_topic_monitor",
-        executable="topic_frequency_monitor",
+        executable="topic_age_monitor",
         name=CONFIG_MONITOR_NAME,
         output="both",
         namespace="",
@@ -122,7 +113,7 @@ def generate_test_description():
                     FindPackageShare("diagnostic_topic_monitor"),
                     "test",
                     "config",
-                    "topic_frequency_monitor.yaml",
+                    "topic_age_monitor.yaml",
                 ]
             ),
         ],
@@ -133,18 +124,15 @@ def generate_test_description():
         [
             SetEnvironmentVariable("RCUTILS_LOGGING_BUFFERED_STREAM", "1"),
             talker_node,
-            monitor_all_node,
             monitor_config_node,
             # Right after the monitor starts, make it take the 'configure' transition.
-            create_register_configure(monitor_all_node),
             create_register_configure(monitor_config_node),
             # When the monitor reaches the 'inactive' state, 'activate'.
-            create_register_activate(monitor_all_node),
             create_register_activate(monitor_config_node),
             # When the monitor node reaches the 'active' state, we're ready for testing
             RegisterEventHandler(
                 launch_ros.event_handlers.OnStateTransition(
-                    target_lifecycle_node=monitor_all_node,
+                    target_lifecycle_node=monitor_config_node,
                     start_state="activating",
                     goal_state="active",
                     entities=[
@@ -169,7 +157,7 @@ class TestMonitor(unittest.TestCase):
         rclpy.shutdown()
 
     def setUp(self):
-        self.node = rclpy.create_node("test_topic_frequency_monitor_node")
+        self.node = rclpy.create_node("test_topic_age_monitor_node")
         self.log = self.node.get_logger()
         self.sub = self.node.create_subscription(
             DiagnosticArray, "/diagnostics", self.stat_cb, 10
@@ -178,16 +166,15 @@ class TestMonitor(unittest.TestCase):
         self.log.info(
             f"Number of publishers for /diagnostics: {self.pub_count}. Listening for messages..."
         )
-        self.messages = []
-        self.freq_messages = []
+        self.age_messages = []  # Store messages from configured age monitor
 
         start_time = time.time()
-        while len(self.messages) < 3 or len(self.freq_messages) < 3:
+        while len(self.age_messages) < 3:
             rclpy.spin_once(self.node, timeout_sec=1.0)
-            self.log.debug(f"Got {len(self.messages)} and {len(self.freq_messages)}")
+            self.log.debug(f"Got {len(self.age_messages)} age msgs msgs")
             if (time.time() - start_time) > self.TIMEOUT:
                 self.fail("Timed out waiting for message in /diagnostics topic")
-        self.log.debug(f"Got {len(self.messages)} and {len(self.freq_messages)}")
+        self.log.info(f"Stored {len(self.age_messages)} age msgs")
 
     def tearDown(self):
         self.node.destroy_node()
@@ -198,13 +185,11 @@ class TestMonitor(unittest.TestCase):
         if len(msg.status) == 0:
             return
         if CONFIG_MONITOR_NAME in msg.status[0].name:
-            self.freq_messages.append(msg)
-        else:
-            self.messages.append(msg)
+            self.age_messages.append(msg)
 
     def test_diag_msg(self):
         """Check that diagnostics messages contain the right content."""
-        last_msg = self.messages.pop()
+        last_msg = self.age_messages.pop()
         # header
         current_time = self.node.get_clock().now()
         header_time = Time.from_msg(last_msg.header.stamp)
@@ -212,25 +197,27 @@ class TestMonitor(unittest.TestCase):
         last_status = last_msg.status[0]
         # status should be OK
         self.assertEqual(last_status.level, DiagnosticStatus.OK)
-        keys = [value.key for value in last_status.values]
-        self.assertTrue("period" in keys)
-        names = [status.name for status in last_msg.status]
-        # The all_topics monitor should have all topics
-        self.assertIn(f"{ALL_MONITOR_NAME}: /dummy_header_topic", names, f"{names}")
-        self.assertIn(f"{ALL_MONITOR_NAME}: /dummy_string_topic1", names, f"{names}")
 
-    def test_frequency_diag_msg(self):
-        """Check that the frequency diagnostic works."""
-        last_msg = self.freq_messages.pop()
-        self.log.debug(f"{last_msg}")
+    def test_age_diag_msg(self):
+        """Check that the age diagnostic works."""
+        last_msg = self.age_messages.pop()
         self.assertTrue(len(last_msg.status) > 0)
         status = last_msg.status[0]
         # check some fields for present/content
         self.assertTrue(CONFIG_MONITOR_NAME in status.name)
         keys = [kv.key for kv in status.values]
-        self.assertIn("Actual frequency (Hz)", keys)
+        self.assertTrue("Earliest timestamp delay:" in keys)
 
     def test_ignore_unconfigured(self):
         """Check that we ignore the topic we don't monitor."""
-        last_msg = self.freq_messages.pop()
-        self.assertEqual(len(last_msg.status), 2)  # We monitor 2 topics
+        last_msg = self.age_messages.pop()
+        self.assertEqual(len(last_msg.status), 1)  # We monitor 1 topic only
+        names = [status.name for status in last_msg.status]
+        #  This topic should be monitored
+        self.assertIn(f"{CONFIG_MONITOR_NAME}: /dummy_header_topic", names, f"{names}")
+        # This topic should not be monitored
+        self.assertNotIn(
+            f"{CONFIG_MONITOR_NAME}: /dummy_string_topic1",
+            names,
+            f"{names}",
+        )

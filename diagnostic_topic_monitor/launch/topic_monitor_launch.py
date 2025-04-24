@@ -40,14 +40,10 @@ def generate_launch_description():
                             {
                                 "use_sim_time": LaunchConfiguration("use_sim_time"),
                                 "monitor_configured_only": True,
+                                "topics": ["/dummy_header_topic"],
+                                "min_values": [5.0],
+                                "max_values": [15.0],
                             },
-                            PathJoinSubstitution(
-                                [
-                                    FindPackageShare("diagnostic_topic_monitor"),
-                                    "config",
-                                    "topic_frequency_monitor.yaml",
-                                ]
-                            ),
                         ],
                         arguments=[
                             "--ros-args",
@@ -63,15 +59,14 @@ def generate_launch_description():
                         parameters=[
                             {
                                 "use_sim_time": LaunchConfiguration("use_sim_time"),
-                                "monitor_configured_only": False,
+                                "monitor_configured_only": True,
+                                "topics": [
+                                    "/dummy_header_topic",
+                                    # "/driving/velodyne/FR/velodyne_points",
+                                ],
+                                "min_values": [-0.01],
+                                "max_values": [0.2],
                             },
-                            PathJoinSubstitution(
-                                [
-                                    FindPackageShare("diagnostic_topic_monitor"),
-                                    "config",
-                                    "topic_age_monitor.yaml",
-                                ]
-                            ),
                         ],
                         arguments=[
                             "--ros-args",

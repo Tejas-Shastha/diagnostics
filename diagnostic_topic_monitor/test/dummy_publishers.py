@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String, Header
-from builtin_interfaces.msg import Time
-
+from std_msgs.msg import String
+from sensor_msgs.msg import CameraInfo
 
 class DummyPublisherNode(Node):
     def __init__(self):
@@ -13,7 +12,7 @@ class DummyPublisherNode(Node):
         self.string_pub1 = self.create_publisher(String, '/dummy_string_topic1', 10)
         self.string_pub2 = self.create_publisher(String, '/dummy_string_topic2', 10)
         self.string_pub2 = self.create_publisher(String, '/dummy_string_topic3', 10)
-        self.header_pub = self.create_publisher(Header, '/dummy_header_topic', 10)
+        self.header_pub = self.create_publisher(CameraInfo, "/dummy_header_topic", 10)
 
         # Timer to publish at 10Hz
         self.timer = self.create_timer(0.1, self.publish_messages)
@@ -37,9 +36,9 @@ class DummyPublisherNode(Node):
         self.string_pub2.publish(msg3)
 
         # Publish to /header_topic
-        header_msg = Header()
-        header_msg.stamp = self.get_clock().now().to_msg()
-        header_msg.frame_id = 'dummy_frame'
+        header_msg = CameraInfo()
+        header_msg.header.stamp = self.get_clock().now().to_msg()
+        header_msg.header.frame_id = "dummy_frame"
         self.header_pub.publish(header_msg)
 
         self.get_logger().debug('Published dummy messages to all topics.')
@@ -53,7 +52,6 @@ def main(args=None):
         rclpy.spin(node)
     except KeyboardInterrupt:
         node.get_logger().info('Shutting down DummyPublisherNode...')
-
 
 
 if __name__ == '__main__':
