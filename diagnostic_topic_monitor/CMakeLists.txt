@@ -67,12 +67,6 @@ install(TARGETS topic_age_monitor_component
   RUNTIME DESTINATION bin
 )
 
-# Install launch files.
-install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}/
-)
-
 install(
   DIRECTORY include/
   DESTINATION include

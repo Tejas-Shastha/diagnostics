@@ -86,7 +86,6 @@ def create_register_activate(target_action):
     )
 
 
-ALL_MONITOR_NAME = "monitor_all_topics_node"
 CONFIG_MONITOR_NAME = "monitor_configured_topics_node"
 
 
