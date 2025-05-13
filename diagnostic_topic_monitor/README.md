@@ -8,7 +8,7 @@ There are two monitors currently available, which can be used as components or s
   * topic_frequency_monitor -- this supports _any_ kind of topic and checks for frequency based on receive time
   * topic_age_monitor -- this supports only topics with a Header, and it checks that message age is within a given range
 
-It is totally possible to run both of these at the same time _for the same topics_, to check for both frequency
+It is totally possible to run both of these at the same time, for different or the same topics, to check for both frequency
 and max message age at the same time.
 
 ## Usage
